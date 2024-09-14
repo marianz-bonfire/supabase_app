@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_app/core/extensions/context_extension.dart';
+import 'package:supabase_app/ui/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Avatar extends StatefulWidget {
@@ -28,27 +29,36 @@ class _AvatarState extends State<Avatar> {
           Container(
             width: 150,
             height: 150,
-            color: Colors.grey,
-            child: Column(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[300],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
               children: const [
-                Center(
-                  child: Text('No Image'),
-                ),
+                Text('No Image'),
                 CircularProgressIndicator(),
               ],
             ),
           )
         else
-          Image.network(
-            widget.imageUrl!,
+          Container(
             width: 150,
             height: 150,
-            fit: BoxFit.cover,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                fit: BoxFit.fill,
+                image: NetworkImage(
+                  widget.imageUrl!,
+                ),
+              ),
+            ),
           ),
         const SizedBox(height: 8),
-        ElevatedButton(
+        CustomButton(
+          _isLoading ? 'Loading...' : 'Upload',
           onPressed: _isLoading ? null : _upload,
-          child: const Text('Upload'),
         ),
       ],
     );

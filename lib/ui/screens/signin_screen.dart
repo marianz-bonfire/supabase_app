@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_app/constants.dart';
 import 'package:supabase_app/core/extensions/context_extension.dart';
 import 'package:supabase_app/ui/screens/home_screen.dart';
+import 'package:supabase_app/ui/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -36,6 +39,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void initState() {
+    _emailController.text = 'marianz.bcssti@gmail.com';
+    _passwordController.text = 'MarianzBcssti';
     supabase?.auth.onAuthStateChange.listen(
       (data) {
         if (_redirecting) return;
@@ -78,6 +83,49 @@ class _SignInScreenState extends State<SignInScreen> {
     } on AuthException catch (error) {
       context.showErrorSnackBar(error.message);
     } catch (error) {
+      context.showErrorSnackBar('Unexpected error occurred $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      const webClientId = '46807533835-b30bdmgmjbpjf6eodpelt8k344hcok1i.apps.googleusercontent.com';
+      const webserverClientId = '46807533835-ak5tj65gmbet554ns15ere2da258b3a6.apps.googleusercontent.com';
+      final GoogleSignIn googleSignIn =  GoogleSignIn(
+        clientId: webClientId,
+        serverClientId: webserverClientId
+      ) ;
+      final googleUser = await googleSignIn.signIn();
+      final googleAuth = await googleUser!.authentication;
+      final idToken = googleAuth.idToken ?? googleAuth.accessToken;
+
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      AuthResponse response = await supabase.auth.signInWithIdToken(
+        provider: Provider.google,
+        idToken: idToken,
+        accessToken:  googleAuth.accessToken
+      );
+      if (mounted) {
+        _redirecting = true;
+        Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
+      }
+    } on AuthException catch (error) {
+      print('GOOGLE SIGNIN: AuthException $error');
+      context.showErrorSnackBar(error.message);
+    } catch (error) {
+      print('GOOGLE SIGNIN: $error');
       context.showErrorSnackBar('Unexpected error occurred $error');
     } finally {
       if (mounted) {
@@ -214,56 +262,28 @@ class _SignInScreenState extends State<SignInScreen> {
                     ],
                   ),
                   const SizedBox(height: 30),
-                  TextButton(
+                  CustomButton(
+                    _isLoading ? 'Authenticating...' : 'Login',
                     onPressed: _isLoading
                         ? null
                         : () async {
-                      if (_formKey.currentState!.validate()) {
-                        _signIn();
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 10,
-                      ),
-                    ),
-                    child: Text(
-                      _isLoading ? 'Authenticating...' : 'Login',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                            if (_formKey.currentState!.validate()) {
+                              _signIn();
+                            }
+                          },
+                    isLoading: _isLoading,
                   ),
                   const SizedBox(height: 15),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 10,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/google.png'),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Continue with Google',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                  CustomButton(
+                    'Continue with Google',
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            await _googleSignIn();
+                          },
+                    iconImage: Image.asset('assets/google.png'),
+                    isLoading: _isLoading,
+                    backColor: Colors.black,
                   ),
                 ],
               ),
