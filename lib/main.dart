@@ -24,9 +24,10 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        navigatorKey: NavigatorContext.key,
-        debugShowCheckedModeBanner: false,
-        initialRoute: SplashScreen.routeName,
-        routes: AppRoutes.routes);
+      navigatorKey: NavigatorContext.key,
+      debugShowCheckedModeBanner: false,
+      initialRoute: SplashScreen.routeName,
+      routes: AppRoutes.routes,
+    );
   }
 }

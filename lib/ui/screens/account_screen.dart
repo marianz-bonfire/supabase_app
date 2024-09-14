@@ -4,6 +4,7 @@ import 'package:supabase_app/core/extensions/context_extension.dart';
 import 'package:supabase_app/core/navigator_context.dart';
 import 'package:supabase_app/ui/screens/signin_screen.dart';
 import 'package:supabase_app/ui/widgets/avatar.dart';
+import 'package:supabase_app/ui/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -30,11 +31,18 @@ class _AccountScreenState extends State<AccountScreen> {
     });
 
     try {
-      final userId = supabase.auth.currentSession!.user.id;
-      final data = await supabase.from('profiles').select().eq('id', userId).single();
-      _usernameController.text = (data['username'] ?? '') as String;
-      _websiteController.text = (data['website'] ?? '') as String;
-      _avatarUrl = (data['avatar_url'] ?? '') as String;
+      User? user = Supabase.instance.client.auth.currentSession?.user;
+      user ??= Supabase.instance.client.auth.currentUser;
+      final data = await supabase.from('profiles').select().eq('id', user!.id).single();
+      if (data != null && (data['username'] ?? '').toString().isNotEmpty) {
+        _usernameController.text = (data['username'] ?? '') as String;
+        _websiteController.text = (data['website'] ?? '') as String;
+        _avatarUrl = (data['avatar_url'] ?? '') as String;
+      } else {
+        _usernameController.text = (user?.userMetadata?['full_name'] ?? '') as String;
+        _websiteController.text = (user?.userMetadata?['website'] ?? '') as String;
+        _avatarUrl = (user?.userMetadata?['avatar_url'] ?? '') as String;
+      }
     } on PostgrestException catch (error) {
       if (mounted) context.showSnackBar(error.message);
     } catch (error) {
@@ -163,23 +171,10 @@ class _AccountScreenState extends State<AccountScreen> {
             decoration: const InputDecoration(labelText: 'Website'),
           ),
           const SizedBox(height: 18),
-          TextButton(
+          CustomButton(
+            _loading ? 'Saving...' : 'Update',
             onPressed: _loading ? null : _updateProfile,
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(
-                vertical: 20,
-                horizontal: 10,
-              ),
-            ),
-            child: Text(
-              _loading ? 'Saving...' : 'Update',
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            isLoading: _loading,
           ),
           const SizedBox(height: 18),
           TextButton(
